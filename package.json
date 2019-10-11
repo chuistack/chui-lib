@@ -1,0 +1,21 @@
+{
+  "name": "@chuistack/chui",
+  "version": "0.1.0",
+  "description": "The tools used by the Chui CLI and Chui Apps.",
+  "main": "./dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npx tsc"
+  },
+  "author": "Raphaël Titsworth-Morin",
+  "license": "MIT",
+  "dependencies": {
+    "find-up": "^4.1.0",
+    "js-yaml": "^3.13.1",
+    "typescript": "^3.6.3"
+  },
+  "devDependencies": {
+    "@types/node": "^12.7.12",
+    "@types/js-yaml": "^3.12.1"
+  }
+}
