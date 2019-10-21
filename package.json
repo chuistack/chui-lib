@@ -1,5 +1,5 @@
 {
-  "name": "@chuistack/chui",
+  "name": "@chuistack/chui-lib",
   "version": "0.1.0",
   "description": "The tools used by the Chui CLI and Chui Apps.",
   "main": "./dist/index.js",
@@ -10,11 +10,14 @@
   "author": "Raphaël Titsworth-Morin",
   "license": "MIT",
   "dependencies": {
+    "dashify": "^2.0.0",
     "find-up": "^4.1.0",
     "js-yaml": "^3.13.1",
+    "tslib": "^1.10.0",
     "typescript": "^3.6.3"
   },
   "devDependencies": {
+    "@types/dashify": "^1.0.0",
     "@types/node": "^12.7.12",
     "@types/js-yaml": "^3.12.1"
   }
