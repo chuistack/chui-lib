@@ -9,8 +9,9 @@ import {
     CHUI_ENVIRONMENT_VARIABLE,
     CHUI_CORE_APP,
     CHUI_INFRASTRUCTURE_APP,
-    CHUI_RESERVED_DIRS, CHUI_APP_CONFIG_DIR
+    CHUI_RESERVED_DIRS, CHUI_APP_CONFIG_DIR, CHUI_INFRASTRUCTURE_REPO_BASE
 } from "../constants";
+import {getEnv} from "../utils";
 
 let _config: ChuiEnvConfig;
 
@@ -89,12 +90,12 @@ export const _checkApps = (apps: ChuiApp[]): void => {
 
 
 /**
- * Gets project apps, injecting required apps and presents based on config.
+ * Gets project apps, injecting required apps and presets based on config.
  *
  * @param config
  * @private
  */
-export const _getApps = (config: ChuiEnvConfig): ChuiApp[] => {
+export const _getApps = (config: ChuiEnvConfig | ChuiGlobalConfig): ChuiApp[] => {
     const {infrastructure, apps = []} = config;
 
     _checkApps(apps);
@@ -102,7 +103,10 @@ export const _getApps = (config: ChuiEnvConfig): ChuiApp[] => {
     const chuiApps = [CHUI_CORE_APP];
 
     if (typeof infrastructure !== "undefined") {
-        chuiApps.push(CHUI_INFRASTRUCTURE_APP);
+        chuiApps.push({
+            ...CHUI_INFRASTRUCTURE_APP,
+            repo: `${CHUI_INFRASTRUCTURE_REPO_BASE}-${infrastructure}`
+        });
     }
 
     return [...apps, ...chuiApps];
@@ -117,7 +121,7 @@ export const _getApps = (config: ChuiEnvConfig): ChuiApp[] => {
  * @private
  */
 export const _getMergedConfig = (configJson: ChuiConfigFile): ChuiEnvConfig => {
-    const env = process.env[CHUI_ENVIRONMENT_VARIABLE];
+    const env = getEnv();
     const configList = configJson.environments.filter((_env) => _env.environment === env);
     if (configList.length === 0) {
         throw Error(`No matching config for: ${env}`);
@@ -149,8 +153,11 @@ export const _getConfigWithReqs = (config: ChuiEnvConfig): ChuiEnvConfig => {
 /**
  * Searches up the directory tree until finding the a file named with the CHUI_CONFIG_FILENAME.
  */
-export const findConfigFile = (): string => {
-    const file = findup.sync(CHUI_CONFIG_FILENAME, {type: 'file'});
+export const findConfigFile = (cwd?: string): string => {
+    const file = findup.sync(CHUI_CONFIG_FILENAME, {
+        cwd,
+        type: 'file',
+    });
     if(!file){
         throw Error("No config file found.");
     }
@@ -161,8 +168,8 @@ export const findConfigFile = (): string => {
 /**
  * Loads the full contents of the Chui config file.
  */
-export const loadFullConfig = (): ChuiConfigFile => {
-    const configFile = findConfigFile();
+export const loadFullConfig = (cwd?: string): ChuiConfigFile => {
+    const configFile = findConfigFile(cwd);
 
     if (!configFile)
         throw Error(`Missing Chui configuration file ${CHUI_CONFIG_FILENAME}.`);
@@ -172,13 +179,27 @@ export const loadFullConfig = (): ChuiConfigFile => {
 
 
 /**
+ * Load just the global config.
+ *
+ * @param cwd
+ */
+export const loadGlobalConfig = (cwd?: string): ChuiGlobalConfig => {
+    const fullConfig = loadFullConfig(cwd);
+    return {
+        ...fullConfig.globals,
+        apps: _getApps(fullConfig.globals),
+    };
+};
+
+
+/**
  * Load the current Chui configuration. The configuration is a yaml file named chui.yml
  */
-export const loadCurrentConfig = (): ChuiEnvConfig => {
+export const loadCurrentConfig = (cwd?: string): ChuiEnvConfig => {
     if (_config)
         return _config;
 
-    const fullConfig = loadFullConfig();
+    const fullConfig = loadFullConfig(cwd);
 
     const mergedConfig = _getMergedConfig(fullConfig);
     const withReqs = _getConfigWithReqs(mergedConfig);

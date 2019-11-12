@@ -45,10 +45,10 @@ export interface ChuiEnvConfig extends BaseConfig {
 export interface ChuiGlobalConfig extends BaseConfig {
     rootDomain: string;
     globalAppName: string;
-    infrastructure: undefined | InfrastructureProviders;
-    auth: undefined | AuthProviders;
-    storage: undefined | StorageProviders;
-    serverless: undefined | ServerlessProviders;
+    infrastructure?: undefined | InfrastructureProviders;
+    auth?: undefined | AuthProviders;
+    storage?: undefined | StorageProviders;
+    serverless?: undefined | ServerlessProviders;
 }
 
 export interface ChuiConfigFile {
