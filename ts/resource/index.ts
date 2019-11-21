@@ -1,6 +1,5 @@
 /**
  * Builds the name of an object by their component and type.
- *
  * @param app
  * @param component
  * @param type
@@ -11,7 +10,6 @@ export const buildObjectName = (app: any, component: string, type: string) =>
 
 /**
  * Generates the name of an endpoint, assuming it's a subdomain of the root.
- *
  * @param root
  * @param subdomain
  */
@@ -21,7 +19,6 @@ export const buildEndpoint = (root: any, subdomain: string) =>
 
 /**
  * Takes a service name, and namespace ("default" by default), and returns the hostname.
- *
  * @param serviceName
  * @param namespace
  */

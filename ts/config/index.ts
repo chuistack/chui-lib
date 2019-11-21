@@ -1,52 +1,27 @@
-import {ChuiApp, ChuiConfigFile, ChuiEnvConfig, ChuiGlobalConfig} from "../types/config";
+import {ChuiAppInstaller, ChuiCompleteConfig, ChuiConfigFile, ChuiEnvConfig, ChuiGlobalConfig} from "../types/config";
 import * as findup from "find-up";
 import * as yaml from "js-yaml";
 import * as fs from "fs";
 import * as path from "path";
 import * as dashify from "dashify";
-import {
-    CHUI_CONFIG_FILENAME,
-    CHUI_ENVIRONMENT_VARIABLE,
-    CHUI_CORE_APP,
-    CHUI_INFRASTRUCTURE_APP,
-    CHUI_RESERVED_DIRS, CHUI_APP_CONFIG_DIR, CHUI_INFRASTRUCTURE_REPO_BASE
-} from "../constants";
+import {CHUI_APP_CONFIG_DIR, CHUI_CONFIG_FILENAME, CHUI_ENVIRONMENT_VARIABLE} from "../constants";
 import {getEnv} from "../utils";
+import {
+    AppListValidator, AppValidator,
+    checkAppType,
+    checkAppValues,
+    checkCertManagerExists,
+    checkInfrastructureFirst,
+    checkIngressControllerExists
+} from "./validators/app";
+import {checkCompleteConfigValues, CompleteConfigValidator} from "./validators/config";
+
 
 let _config: ChuiEnvConfig;
 
 
 /**
- * Check that the configuration object has all the required params.
- *
- * @param config
- * @private
- */
-export const _checkConfig = (config: any): void => {
-    if (!config) {
-        throw Error(`No config for environment ${process.env[CHUI_ENVIRONMENT_VARIABLE]}.`);
-    }
-
-    const params = [
-        'environment',
-        'globalAppName',
-        'rootDomain',
-    ];
-
-    params.forEach((value => {
-        if (!config[value]) {
-            throw Error(
-                `Missing required parameter ${value} in Chui config` +
-                `for environment ${process.env[CHUI_ENVIRONMENT_VARIABLE]}`
-            );
-        }
-    }));
-};
-
-
-/**
  * Loads the found yaml config file.
- *
  * @param configPath
  * @private
  */
@@ -57,11 +32,10 @@ export const _loadConfigYaml = (configPath: string): ChuiConfigFile => {
 
 /**
  * Returns a domain to be used for an environment, based on the root domain.
- *
  * @param env
  * @private
  */
-export const _getEnvironmentDomain = (env: ChuiEnvConfig): string => {
+export const _getEnvironmentDomain = (env: ChuiCompleteConfig): string => {
     if (env.environmentDomain) {
         return env.environmentDomain;
     }
@@ -70,57 +44,76 @@ export const _getEnvironmentDomain = (env: ChuiEnvConfig): string => {
 };
 
 
+export const _appListValidators: AppListValidator[] = [
+    checkInfrastructureFirst,
+    checkIngressControllerExists,
+    checkCertManagerExists,
+];
+
+
+/**
+ * Checks that the supplied app list is valid.
+ * @param apps
+ */
+export const validateConfigAppsList = (apps: ChuiAppInstaller[]): void =>
+    _appListValidators.forEach(validate => validate(apps));
+
+
+/**
+ * Checks that the supplied app list is valid for a given complete config.
+ * @param config
+ */
+export const validateCompleteConfigAppsList = (config: ChuiCompleteConfig): void =>
+    _appListValidators.forEach(validate => validate(config.apps));
+
+
+/**
+ * List of app checkers to run through and make sure all apps are valid.
+ */
+export const _singleAppValidators: AppValidator[] = [
+    checkAppValues,
+    checkAppType,
+];
+
+
 /**
  * Checks that the supplied apps are valid.
- *
  * @param apps
  * @private
  */
-export const _checkApps = (apps: ChuiApp[]): void => {
-    const hasReservedDirs = apps.filter(a => {
-        return CHUI_RESERVED_DIRS.indexOf(a.directory) !== -1;
-    }).length > 0;
-
-    if(hasReservedDirs){
-        throw Error(`The following directories are reserved: ${
-            CHUI_RESERVED_DIRS.join(', ')
-        }`);
-    }
-};
+export const validateConfigApps = (apps: ChuiAppInstaller[]): void =>
+    apps.forEach(app => _singleAppValidators.forEach(validate => validate(app)));
 
 
 /**
- * Gets project apps, injecting required apps and presets based on config.
- *
+ * Pass in a complete config to validate its apps.
  * @param config
- * @private
  */
-export const _getApps = (config: ChuiEnvConfig | ChuiGlobalConfig): ChuiApp[] => {
-    const {infrastructure, apps = []} = config;
+export const validateCompleteConfigApps = (config: ChuiCompleteConfig) =>
+    validateConfigApps(config.apps);
 
-    _checkApps(apps);
 
-    const chuiApps = [CHUI_CORE_APP];
+export const _completeConfigValidators: CompleteConfigValidator[] = [
+    checkCompleteConfigValues,
+    validateCompleteConfigApps,
+];
 
-    if (typeof infrastructure !== "undefined") {
-        chuiApps.push({
-            ...CHUI_INFRASTRUCTURE_APP,
-            repo: `${CHUI_INFRASTRUCTURE_REPO_BASE}-${infrastructure}`
-        });
-    }
 
-    return [...apps, ...chuiApps];
-};
+/**
+ * Check that the configuration object has all the required params.
+ * @param config
+ */
+export const validateCompleteConfig = (config: ChuiCompleteConfig): void =>
+    _completeConfigValidators.forEach(validator => validator(config));
 
 
 /**
  * Takes the JSON loaded from the yaml file and combines the global config and config
  * for the current env.
- *
  * @param configJson
  * @private
  */
-export const _getMergedConfig = (configJson: ChuiConfigFile): ChuiEnvConfig => {
+export const _getMergedConfig = (configJson: ChuiConfigFile): ChuiCompleteConfig => {
     const env = getEnv();
     const configList = configJson.environments.filter((_env) => _env.environment === env);
     if (configList.length === 0) {
@@ -129,36 +122,27 @@ export const _getMergedConfig = (configJson: ChuiConfigFile): ChuiEnvConfig => {
     if (configList.length > 1) {
         throw Error(`More than one config for: ${env}`);
     }
-    return {
+    const merged = {
         ...configJson.globals,
         ...configList[0],
     };
-};
-
-
-/**
- * Get the merged environment + global config and inject required system apps.
- * @param config
- * @private
- */
-export const _getConfigWithReqs = (config: ChuiEnvConfig): ChuiEnvConfig => {
     return {
-        ...config,
-        environmentDomain: _getEnvironmentDomain(config),
-        apps: _getApps(config),
+        ...merged,
+        environmentDomain: _getEnvironmentDomain(merged),
     }
 };
 
 
 /**
- * Searches up the directory tree until finding the a file named with the CHUI_CONFIG_FILENAME.
+ * Searches up the directory tree until finding the a file named
+ * with the CHUI_CONFIG_FILENAME.
  */
 export const findConfigFile = (cwd?: string): string => {
     const file = findup.sync(CHUI_CONFIG_FILENAME, {
         cwd,
         type: 'file',
     });
-    if(!file){
+    if (!file) {
         throw Error("No config file found.");
     }
     return file;
@@ -180,16 +164,10 @@ export const loadFullConfig = (cwd?: string): ChuiConfigFile => {
 
 /**
  * Load just the global config.
- *
  * @param cwd
  */
-export const loadGlobalConfig = (cwd?: string): ChuiGlobalConfig => {
-    const fullConfig = loadFullConfig(cwd);
-    return {
-        ...fullConfig.globals,
-        apps: _getApps(fullConfig.globals),
-    };
-};
+export const loadGlobalConfig = (cwd?: string): ChuiGlobalConfig =>
+    loadFullConfig(cwd).globals;
 
 
 /**
@@ -201,11 +179,10 @@ export const loadCurrentConfig = (cwd?: string): ChuiEnvConfig => {
 
     const fullConfig = loadFullConfig(cwd);
 
-    const mergedConfig = _getMergedConfig(fullConfig);
-    const withReqs = _getConfigWithReqs(mergedConfig);
+    const config = _getMergedConfig(fullConfig);
 
-    _checkConfig(withReqs);
-    _config = withReqs;
+    validateCompleteConfig(config);
+    _config = config;
 
     return _config;
 };
@@ -213,14 +190,15 @@ export const loadCurrentConfig = (cwd?: string): ChuiEnvConfig => {
 
 /**
  * Get the name of the current app.
+ * This should be called from within Chui apps.
  */
 export const getCurrentAppName = (): string => {
     const dir = findup.sync(CHUI_APP_CONFIG_DIR, {type: 'directory'});
-    if(!dir){
+    if (!dir) {
         throw Error('Not in a Chui application.');
     }
     const name = path.dirname(dir).split(path.sep).pop();
-    if(!name){
+    if (!name) {
         throw Error('No parent directory. Weird.');
     }
     return name;
