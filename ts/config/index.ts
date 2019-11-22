@@ -145,7 +145,7 @@ export const _getMergedConfig = (configJson: ChuiConfigFile): ChuiCompleteConfig
  * Searches up the directory tree until finding the a file named
  * with the CHUI_CONFIG_FILENAME.
  */
-export const findConfigFile = (cwd?: string): string => {
+export const getConfigFile = (cwd?: string): string => {
     const file = findup.sync(CHUI_CONFIG_FILENAME, {
         cwd,
         type: 'file',
@@ -158,10 +158,20 @@ export const findConfigFile = (cwd?: string): string => {
 
 
 /**
+ * The root path for the project.
+ * @param cwd
+ */
+export const getConfigRoot = (cwd?: string): string => {
+    const file = getConfigFile(cwd);
+    return path.dirname(file);
+};
+
+
+/**
  * Loads the full contents of the Chui config file.
  */
 export const loadFullConfig = (cwd?: string): ChuiConfigFile => {
-    const configFile = findConfigFile(cwd);
+    const configFile = getConfigFile(cwd);
 
     if (!configFile)
         throw Error(`Missing Chui configuration file ${CHUI_CONFIG_FILENAME}.`);
