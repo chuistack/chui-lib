@@ -14,8 +14,3 @@ export const CHUI_APP_PULUMI_CONFIG_FILENAME = 'chui.Pulumi.yaml';
 export const CHUI_APP_CONFIG_DIR = '.chui';
 
 export const CHUI_INFRASTRUCTURE_REPO_BASE = 'https://github.com/chuistack/chui-infrastructure';
-
-export const CHUI_INFRASTRUCTURE_APP = {
-    directory: 'infrastructure',
-    source: '', // i.e. https://github.com/chuistack/chui-infrastructure-digitalocean
-};

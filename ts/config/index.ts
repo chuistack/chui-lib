@@ -1,11 +1,18 @@
-import {ChuiAppInstaller, ChuiCompleteConfig, ChuiConfigFile, ChuiEnvConfig, ChuiGlobalConfig} from "../types/config";
+import {
+    ChuiAppInstaller,
+    ChuiAppTypes,
+    ChuiCompleteConfig,
+    ChuiConfigFile,
+    ChuiEnvConfig,
+    ChuiGlobalConfig
+} from "../types/config";
 import * as findup from "find-up";
 import * as yaml from "js-yaml";
 import * as fs from "fs";
 import * as path from "path";
 import * as dashify from "dashify";
 import {CHUI_APP_CONFIG_DIR, CHUI_CONFIG_FILENAME, CHUI_ENVIRONMENT_VARIABLE} from "../constants";
-import {getEnv} from "../utils";
+import {getEnv} from "../environment";
 import {
     AppListValidator, AppValidator,
     checkAppType,
@@ -15,9 +22,10 @@ import {
     checkIngressControllerExists
 } from "./validators/app";
 import {checkCompleteConfigValues, CompleteConfigValidator} from "./validators/config";
+import {getStack, StackReference} from "@pulumi/pulumi";
 
 
-let _config: ChuiEnvConfig;
+let _config: ChuiCompleteConfig;
 
 
 /**
@@ -173,7 +181,7 @@ export const loadGlobalConfig = (cwd?: string): ChuiGlobalConfig =>
 /**
  * Load the current Chui configuration. The configuration is a yaml file named chui.yml
  */
-export const loadCurrentConfig = (cwd?: string): ChuiEnvConfig => {
+export const loadCurrentConfig = (cwd?: string): ChuiCompleteConfig => {
     if (_config)
         return _config;
 
@@ -204,3 +212,9 @@ export const getCurrentAppName = (): string => {
     return name;
 };
 
+
+/**
+ * Returns the apps for the current env/conf.
+ */
+export const getCurrentApps = (): ChuiAppInstaller[] =>
+    loadCurrentConfig().apps;

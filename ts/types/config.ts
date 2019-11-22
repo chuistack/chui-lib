@@ -132,6 +132,7 @@ export interface ChuiGlobalConfig extends ChuiBaseConfig {
     rootDomain: string;
     globalAppName: string;
     infrastructure?: undefined | InfrastructureProviders;
+    pulumiOrgName: string;
 }
 
 
