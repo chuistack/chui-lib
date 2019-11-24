@@ -1,20 +1,14 @@
-import {
-    ChuiAppInstaller,
-    ChuiAppTypes,
-    ChuiCompleteConfig,
-    ChuiConfigFile,
-    ChuiEnvConfig,
-    ChuiGlobalConfig
-} from "../types/config";
+import {ChuiAppInstaller, ChuiBaseConfig, ChuiCompleteConfig, ChuiConfigFile,} from "../types/config";
 import * as findup from "find-up";
 import * as yaml from "js-yaml";
 import * as fs from "fs";
 import * as path from "path";
 import * as dashify from "dashify";
-import {CHUI_APP_CONFIG_DIR, CHUI_CONFIG_FILENAME, CHUI_ENVIRONMENT_VARIABLE} from "../constants";
+import {CHUI_APP_CONFIG_DIR, CHUI_CONFIG_FILENAME} from "../constants";
 import {getEnv} from "../environment";
 import {
-    AppListValidator, AppValidator,
+    AppListValidator,
+    AppValidator,
     checkAppType,
     checkAppValues,
     checkCertManagerExists,
@@ -22,10 +16,29 @@ import {
     checkIngressControllerExists
 } from "./validators/app";
 import {checkCompleteConfigValues, CompleteConfigValidator} from "./validators/config";
-import {getStack, StackReference} from "@pulumi/pulumi";
 
-
+let _configRoot: string | undefined = undefined;
+let _initializing: boolean = false;
 let _config: ChuiCompleteConfig;
+
+
+/**
+ * Used to set config root when using the library from outside
+ * a Chui project, for example when creating a new project.
+ * @param root The path to the root of a new project
+ */
+export const setConfigRoot = (root: string) =>
+    _configRoot = root;
+
+
+/**
+ * Used to set whether a Chui stack is currently being initialized.
+ * Some parts of the configuration functions disable validation before
+ * the config file has been created.
+ * @param initializing
+ */
+export const setInitializing = (initializing: boolean) =>
+    _initializing = initializing;
 
 
 /**
@@ -64,7 +77,7 @@ export const _appListValidators: AppListValidator[] = [
  * @param apps
  */
 export const validateConfigAppsList = (apps: ChuiAppInstaller[]): void =>
-    _appListValidators.forEach(validate => validate(apps));
+    !_initializing && _appListValidators.forEach(validate => validate(apps));
 
 
 /**
@@ -72,7 +85,7 @@ export const validateConfigAppsList = (apps: ChuiAppInstaller[]): void =>
  * @param config
  */
 export const validateCompleteConfigAppsList = (config: ChuiCompleteConfig): void =>
-    _appListValidators.forEach(validate => validate(config.apps));
+    !_initializing && validateConfigAppsList(config.apps);
 
 
 /**
@@ -90,7 +103,7 @@ export const _singleAppValidators: AppValidator[] = [
  * @private
  */
 export const validateConfigApps = (apps: ChuiAppInstaller[]): void =>
-    apps.forEach(app => _singleAppValidators.forEach(validate => validate(app)));
+    !_initializing && apps.forEach(app => _singleAppValidators.forEach(validate => validate(app)));
 
 
 /**
@@ -98,11 +111,12 @@ export const validateConfigApps = (apps: ChuiAppInstaller[]): void =>
  * @param config
  */
 export const validateCompleteConfigApps = (config: ChuiCompleteConfig) =>
-    validateConfigApps(config.apps);
+    !_initializing && validateConfigApps(config.apps);
 
 
 export const _completeConfigValidators: CompleteConfigValidator[] = [
     checkCompleteConfigValues,
+    validateCompleteConfigAppsList,
     validateCompleteConfigApps,
 ];
 
@@ -112,7 +126,7 @@ export const _completeConfigValidators: CompleteConfigValidator[] = [
  * @param config
  */
 export const validateCompleteConfig = (config: ChuiCompleteConfig): void =>
-    _completeConfigValidators.forEach(validator => validator(config));
+    !_initializing && _completeConfigValidators.forEach(validator => validator(config));
 
 
 /**
@@ -145,7 +159,8 @@ export const _getMergedConfig = (configJson: ChuiConfigFile): ChuiCompleteConfig
  * Searches up the directory tree until finding the a file named
  * with the CHUI_CONFIG_FILENAME.
  */
-export const getConfigFile = (cwd?: string): string => {
+export const getConfigFile = (): string => {
+    let cwd = _configRoot ? _configRoot : undefined;
     const file = findup.sync(CHUI_CONFIG_FILENAME, {
         cwd,
         type: 'file',
@@ -159,19 +174,22 @@ export const getConfigFile = (cwd?: string): string => {
 
 /**
  * The root path for the project.
- * @param cwd
  */
-export const getConfigRoot = (cwd?: string): string => {
-    const file = getConfigFile(cwd);
-    return path.dirname(file);
+export const getConfigRoot = (): string => {
+    if (_configRoot)
+        return _configRoot;
+
+    const file = getConfigFile();
+    _configRoot = path.dirname(file);
+    return _configRoot;
 };
 
 
 /**
  * Loads the full contents of the Chui config file.
  */
-export const loadFullConfig = (cwd?: string): ChuiConfigFile => {
-    const configFile = getConfigFile(cwd);
+export const loadFullConfig = (): ChuiConfigFile => {
+    const configFile = getConfigFile();
 
     if (!configFile)
         throw Error(`Missing Chui configuration file ${CHUI_CONFIG_FILENAME}.`);
@@ -182,20 +200,19 @@ export const loadFullConfig = (cwd?: string): ChuiConfigFile => {
 
 /**
  * Load just the global config.
- * @param cwd
  */
-export const loadGlobalConfig = (cwd?: string): ChuiGlobalConfig =>
-    loadFullConfig(cwd).globals;
+export const loadGlobalConfig = (): ChuiBaseConfig =>
+    loadFullConfig().globals;
 
 
 /**
  * Load the current Chui configuration. The configuration is a yaml file named chui.yml
  */
-export const loadCurrentConfig = (cwd?: string): ChuiCompleteConfig => {
-    if (_config)
+export const loadCurrentConfig = (): ChuiCompleteConfig => {
+    if (_config && !_initializing)
         return _config;
 
-    const fullConfig = loadFullConfig(cwd);
+    const fullConfig = loadFullConfig();
 
     const config = _getMergedConfig(fullConfig);
 
@@ -228,3 +245,6 @@ export const getCurrentAppName = (): string => {
  */
 export const getCurrentApps = (): ChuiAppInstaller[] =>
     loadCurrentConfig().apps;
+
+
+

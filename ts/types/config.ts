@@ -89,9 +89,9 @@ export interface ChuiApp {
  * not be advisable...)
  */
 export interface ChuiBaseConfig {
-    rootDomain?: string;
-    globalAppName?: string;
-    pulumiOrgName?: string;
+    rootDomain: string;
+    globalAppName: string;
+    pulumiOrgName: string;
     dnsSolver?: undefined | DNSSolverProviders;
     apps?: ChuiAppInstaller[];
 }
@@ -107,28 +107,27 @@ export interface ChuiEnvConfig {
 }
 
 
+export type ChuiCompleteConfig = ChuiBaseConfig & ChuiEnvConfig;
+
 /**
- * These are the configuration options that cannot be overridden
- * by an environment. The root domain for the app (though
- * environments can set their domain to be a separate domain),
- * the global name for the Chui project (globalAppName), and
- * the infrastructure provider.
+ * The config options a user is prompted for to initially
+ * create the actual config file.
  */
-export interface ChuiGlobalConfig extends ChuiBaseConfig {
-    rootDomain: string;
+export interface ChuiPromptConfig {
     globalAppName: string;
-    infrastructure?: undefined | InfrastructureProviders;
+    rootDomain: string;
     pulumiOrgName: string;
+    authProvider: AuthProviders;
+    storageProvider: StorageProviders;
+    serverlessProvider: ServerlessProviders;
+    infrastructure?: InfrastructureProviders;
 }
-
-
-export type ChuiCompleteConfig = ChuiGlobalConfig & ChuiEnvConfig;
 
 /**
  * The complete structure for a Chui config file.
  */
 export interface ChuiConfigFile {
     version: string;
-    globals: ChuiGlobalConfig;
+    globals: ChuiBaseConfig;
     environments: ChuiEnvConfig[];
 }
