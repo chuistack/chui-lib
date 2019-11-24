@@ -56,16 +56,20 @@ export type ChuiAppVariants = IngressControllerProviders
     | ServerlessProviders;
 
 
+export interface ChuiAppSource {
+    source: string;
+    type?: ChuiAppTypes;
+    variant?: ChuiAppVariants;
+}
+
+
 /**
  * Describes where an app should be installed from/to.
  * The `source` should be a git repo which will be cloned.
  * The `directory` is the directory it will be cloned into.
  */
-export interface ChuiAppInstaller {
-    source: string;
+export interface ChuiAppInstaller extends ChuiAppSource{
     name: string;
-    type?: ChuiAppTypes;
-    variant?: ChuiAppVariants;
 }
 
 

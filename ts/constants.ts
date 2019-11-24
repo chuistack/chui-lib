@@ -12,3 +12,5 @@ export const CHUI_APP_PULUMI_CONFIG_FILENAME = 'Pulumi.yaml';
 
 // The name of the directory where a Chui app's configuration should be stored.
 export const CHUI_APP_CONFIG_DIR = '.chui';
+
+export const CHUI_OFFICIAL_APP_LIST_URL = 'https://raw.githubusercontent.com/chuistack/chui-app-list/master/chui-app-list.yaml';

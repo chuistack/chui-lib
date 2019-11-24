@@ -4,13 +4,14 @@ import {promisify} from "util";
 import {
     CHUI_APP_CONFIG_DIR, CHUI_APP_CONFIG_FILENAME,
     CHUI_APP_CONFIG_SAMPLE_FILENAME, CHUI_APP_PULUMI_CONFIG_FILENAME,
-    CHUI_APP_PULUMI_SAMPLE_CONFIG_FILENAME
+    CHUI_APP_PULUMI_SAMPLE_CONFIG_FILENAME, CHUI_OFFICIAL_APP_LIST_URL
 } from "../constants";
 import * as fs from "fs";
-import {ChuiApp, ChuiAppInstaller, ChuiBaseConfig, ChuiConfigFile} from "../types/config";
+import {ChuiApp, ChuiAppInstaller, ChuiAppSource, ChuiBaseConfig, ChuiConfigFile} from "../types/config";
 import * as Git from "nodegit";
 import {getConfigRoot, loadConfigFile, loadGlobalConfig, writeChuiYamlConfig} from "../config";
 import * as yaml from "js-yaml";
+import fetch from "node-fetch";
 
 
 export const Ingress = ingress;
@@ -18,6 +19,9 @@ export const Ingress = ingress;
 
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
+
+
+let _appList: ChuiAppSource[] | undefined = undefined;
 
 
 export const getChuiAppSampleConfigPath = app =>
@@ -37,12 +41,25 @@ export const getChuiAppPulumiConfigPath = app =>
 
 
 /**
+ * Loads the official list of Chui apps.
+ */
+export const loadOfficialAppList = async (refresh?: boolean): Promise<ChuiAppSource[]> => {
+    if(!refresh && _appList)
+        return _appList;
+
+    const response = await fetch(CHUI_OFFICIAL_APP_LIST_URL);
+    const text = await response.text();
+    _appList = yaml.safeLoad(text);
+    return _appList;
+};
+
+
+/**
  * Prepare the app, once it's cloned.
  * @param config
  * @param app
  */
 export const prepAppPulumiConfig = async (config: ChuiBaseConfig, app: ChuiAppInstaller) => {
-    const root = getConfigRoot();
     let pulumiConfig = await readFile(getChuiAppSamplePulumiConfigPath(app), "utf8");
 
     pulumiConfig = pulumiConfig.replace(/{{globalAppName}}/g, config.globalAppName);
@@ -59,7 +76,6 @@ export const prepAppPulumiConfig = async (config: ChuiBaseConfig, app: ChuiAppIn
  * @param app
  */
 export const prepAppChuiConfig = async (config: ChuiBaseConfig, app: ChuiAppInstaller) => {
-    const root = getConfigRoot();
     let chuiConfig = await readFile(getChuiAppSampleConfigPath(app), "utf8");
 
     chuiConfig = chuiConfig.replace(/{{globalAppName}}/g, config.globalAppName);
