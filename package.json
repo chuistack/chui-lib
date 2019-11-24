@@ -19,7 +19,7 @@
     "find-up": "^4.1.0",
     "js-yaml": "^3.13.1",
     "node-fetch": "^2.6.0",
-    "nodegit": "^0.26.2",
+    "simple-git": "^1.126.0",
     "tslib": "^1.10.0",
     "typescript": "^3.6.3",
     "validator": "^12.1.0"

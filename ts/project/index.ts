@@ -26,7 +26,6 @@ export const createNewProjectRoot = async (root: string) =>
  */
 const writeYamlConfig = async (jsonConfig: ChuiConfigFile) => {
     const {globals: {globalAppName}} = jsonConfig;
-    await mkdir(`./${globalAppName}`);
     const yamlConfig = yaml.safeDump(jsonConfig);
     await writeFile(path.join(
         '.',

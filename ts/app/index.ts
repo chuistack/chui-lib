@@ -8,10 +8,10 @@ import {
 } from "../constants";
 import * as fs from "fs";
 import {ChuiApp, ChuiAppInstaller, ChuiAppSource, ChuiBaseConfig, ChuiConfigFile} from "../types/config";
-import * as Git from "nodegit";
 import {getConfigRoot, loadConfigFile, loadGlobalConfig, writeChuiYamlConfig} from "../config";
 import * as yaml from "js-yaml";
 import fetch from "node-fetch";
+import * as simplegit from "simple-git";
 
 
 export const Ingress = ingress;
@@ -19,6 +19,7 @@ export const Ingress = ingress;
 
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
+const git = simplegit();
 
 
 let _appList: ChuiAppSource[] | undefined = undefined;
@@ -44,7 +45,7 @@ export const getChuiAppPulumiConfigPath = app =>
  * Loads the official list of Chui apps.
  */
 export const loadOfficialAppList = async (refresh?: boolean): Promise<ChuiAppSource[]> => {
-    if(!refresh && _appList)
+    if (!refresh && _appList)
         return _appList;
 
     const response = await fetch(CHUI_OFFICIAL_APP_LIST_URL);
@@ -92,9 +93,8 @@ export const prepAppChuiConfig = async (config: ChuiBaseConfig, app: ChuiAppInst
  */
 export const cloneApp = async (app: ChuiAppInstaller) => {
     const root = getConfigRoot();
-    const repo = await Git.Clone.clone(app.source, path.join(root, app.name));
-    await Git.Remote.delete(repo, 'origin');
-    await Git.Remote.createWithFetchspec(repo, 'chui', app.source, 'master');
+    console.log("Cloning, ", app.source, " into ", path.join(root, app.name));
+    const repo = await git.clone(app.source, path.join(root, app.name));
 };
 
 
@@ -145,6 +145,8 @@ export const installApp = async (
     app: ChuiAppInstaller,
 ): Promise<void> => {
     const config = loadGlobalConfig();
+
+    console.log("About to install: ", app);
 
     await cloneApp(app);
     await prepAppPulumiConfig(config, app);
