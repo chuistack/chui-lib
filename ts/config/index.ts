@@ -1,4 +1,4 @@
-import {ChuiAppInstaller, ChuiBaseConfig, ChuiCompleteConfig, ChuiConfigFile,} from "../types/config";
+import {ChuiAppInstaller, ChuiBaseConfig, ChuiCompleteConfig, ChuiConfigFile, ChuiEnvConfig,} from "../types/config";
 import * as findup from "find-up";
 import * as yaml from "js-yaml";
 import * as fs from "fs";
@@ -17,6 +17,7 @@ import {
 } from "./validators/app";
 import {checkCompleteConfigValues, CompleteConfigValidator} from "./validators/config";
 import {promisify} from "util";
+import * as chalk from "chalk";
 
 
 const mkdir = promisify(fs.mkdir);
@@ -234,12 +235,12 @@ export const loadCurrentConfig = (): ChuiCompleteConfig => {
  * @param jsonConfig
  */
 export const writeChuiYamlConfig = async (jsonConfig: ChuiConfigFile) => {
-  const {globals: {globalAppName}} = jsonConfig;
-  const yamlConfig = yaml.safeDump(jsonConfig);
-  await writeFile(path.join(
-    getConfigRoot(),
-    CHUI_CONFIG_FILENAME,
-  ), yamlConfig);
+    console.log(chalk.yellow('Writing new config to disk...'));
+    const yamlConfig = yaml.safeDump(jsonConfig);
+    await writeFile(path.join(
+        getConfigRoot(),
+        CHUI_CONFIG_FILENAME,
+    ), yamlConfig);
 };
 
 
@@ -266,5 +267,17 @@ export const getCurrentAppName = (): string => {
 export const getCurrentApps = (): ChuiAppInstaller[] =>
     loadCurrentConfig().apps;
 
+
+export const addEnvironmentToConfig = async (name: string, domain?: string) => {
+    const config = loadConfigFile();
+    const environment: ChuiEnvConfig = {environment: name};
+
+    if (domain)
+        environment.environmentDomain = domain;
+
+    config.environments.push(environment);
+
+    await writeChuiYamlConfig(config);
+};
 
 
