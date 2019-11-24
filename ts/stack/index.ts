@@ -42,3 +42,23 @@ export const getNamedStack = (name: string) => {
         `${chui.pulumiOrgName}/${chui.globalAppName}-${name}/${getStack()}`
     );
 };
+
+
+/**
+ * Returns a stack by name, matching the environment of the current
+ * stack. If you haven't initialized that app for the same
+ * environment, this will not work, so prep your dependencies
+ * accordingly.
+ * @param source The git url for the app source.
+ */
+export const getSourceStack = (source: string) => {
+    const chui = loadCurrentConfig();
+    const apps = chui.apps;
+    const app = apps.find(app => app.source === source);
+    if (!app) {
+        throw Error(`No app from "${source}" defined.`);
+    }
+    return new StackReference(
+        `${chui.pulumiOrgName}/${chui.globalAppName}-${app.directory}/${getStack()}`
+    );
+};

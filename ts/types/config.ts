@@ -66,20 +66,6 @@ export interface ChuiAppInstaller {
     directory: string;
     type: ChuiAppTypes;
     variant?: ChuiAppVariants;
-    version?: string;
-}
-
-
-/**
- * How to structure dependencies for a Chui project.
- */
-interface ChuiAppDependencies {
-    IngressController?: IngressControllerProviders;
-    CertManager?: CertManagerProviders;
-    Infrastructure?: InfrastructureProviders;
-    Auth?: AuthProviders;
-    Storage?: StorageProviders;
-    Serverless?: ServerlessProviders;
 }
 
 
@@ -93,7 +79,7 @@ export interface ChuiApp {
     type: ChuiAppTypes;
     variant?: ChuiAppVariants;
     name: string;
-    dependencies?: ChuiAppDependencies;
+    dependencies?: string[];
 }
 
 
