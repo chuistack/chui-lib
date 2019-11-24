@@ -49,6 +49,7 @@ export const loadOfficialAppList = async (refresh?: boolean): Promise<ChuiAppSou
     if (!refresh && _appList)
         return _appList;
 
+    console.log(chalk.yellow(`Loading official app list...`));
     const response = await fetch(CHUI_OFFICIAL_APP_LIST_URL);
     const text = await response.text();
     _appList = yaml.safeLoad(text);

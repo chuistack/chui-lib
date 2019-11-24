@@ -122,9 +122,9 @@ export interface ChuiPromptConfig {
     globalAppName: string;
     rootDomain: string;
     pulumiOrgName: string;
-    authProvider: AuthProviders;
-    storageProvider: StorageProviders;
-    serverlessProvider: ServerlessProviders;
+    authProvider?: AuthProviders;
+    storageProvider?: StorageProviders;
+    serverlessProvider?: ServerlessProviders;
     infrastructure?: InfrastructureProviders;
 }
 
