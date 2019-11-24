@@ -10,7 +10,7 @@ export type AppListValidator = (apps: ChuiAppInstaller[]) => void;
  * @param app
  */
 export const checkAppValues = (app: ChuiAppInstaller) => {
-    if (!(app.source && app.directory && app.type)) {
+    if (!(app.source && app.name && app.type)) {
         throw Error('App missing values.');
     }
 };

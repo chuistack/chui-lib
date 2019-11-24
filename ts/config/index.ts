@@ -16,6 +16,12 @@ import {
     checkIngressControllerExists
 } from "./validators/app";
 import {checkCompleteConfigValues, CompleteConfigValidator} from "./validators/config";
+import {promisify} from "util";
+
+
+const mkdir = promisify(fs.mkdir);
+const writeFile = promisify(fs.writeFile);
+
 
 let _configRoot: string | undefined = undefined;
 let _initializing: boolean = false;
@@ -188,7 +194,7 @@ export const getConfigRoot = (): string => {
 /**
  * Loads the full contents of the Chui config file.
  */
-export const loadFullConfig = (): ChuiConfigFile => {
+export const loadConfigFile = (): ChuiConfigFile => {
     const configFile = getConfigFile();
 
     if (!configFile)
@@ -202,7 +208,7 @@ export const loadFullConfig = (): ChuiConfigFile => {
  * Load just the global config.
  */
 export const loadGlobalConfig = (): ChuiBaseConfig =>
-    loadFullConfig().globals;
+    loadConfigFile().globals;
 
 
 /**
@@ -212,7 +218,7 @@ export const loadCurrentConfig = (): ChuiCompleteConfig => {
     if (_config && !_initializing)
         return _config;
 
-    const fullConfig = loadFullConfig();
+    const fullConfig = loadConfigFile();
 
     const config = _getMergedConfig(fullConfig);
 
@@ -220,6 +226,20 @@ export const loadCurrentConfig = (): ChuiCompleteConfig => {
     _config = config;
 
     return _config;
+};
+
+
+/**
+ * Write the json config file to yaml.
+ * @param jsonConfig
+ */
+export const writeChuiYamlConfig = async (jsonConfig: ChuiConfigFile) => {
+  const {globals: {globalAppName}} = jsonConfig;
+  const yamlConfig = yaml.safeDump(jsonConfig);
+  await writeFile(path.join(
+    getConfigRoot(),
+    CHUI_CONFIG_FILENAME,
+  ), yamlConfig);
 };
 
 

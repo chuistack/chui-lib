@@ -63,8 +63,8 @@ export type ChuiAppVariants = IngressControllerProviders
  */
 export interface ChuiAppInstaller {
     source: string;
-    directory: string;
-    type: ChuiAppTypes;
+    name: string;
+    type?: ChuiAppTypes;
     variant?: ChuiAppVariants;
 }
 

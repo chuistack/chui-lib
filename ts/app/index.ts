@@ -1,16 +1,16 @@
 import * as ingress from "./ingress";
 import * as path from "path";
-import {ChuiGlobalConfig} from "../../dist/types/config";
 import {promisify} from "util";
 import {
     CHUI_APP_CONFIG_DIR, CHUI_APP_CONFIG_FILENAME,
-    CHUI_APP_CONFIG_SAMPLE_FILENAME,
+    CHUI_APP_CONFIG_SAMPLE_FILENAME, CHUI_APP_PULUMI_CONFIG_FILENAME,
     CHUI_APP_PULUMI_SAMPLE_CONFIG_FILENAME
 } from "../constants";
 import * as fs from "fs";
-import {ChuiAppInstaller, ChuiBaseConfig} from "../types/config";
+import {ChuiApp, ChuiAppInstaller, ChuiBaseConfig, ChuiConfigFile} from "../types/config";
 import * as Git from "nodegit";
-import {getConfigRoot} from "../config";
+import {getConfigRoot, loadConfigFile, loadGlobalConfig, writeChuiYamlConfig} from "../config";
+import * as yaml from "js-yaml";
 
 
 export const Ingress = ingress;
@@ -20,73 +20,118 @@ const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
 
 
+export const getChuiAppSampleConfigPath = app =>
+    path.join(getConfigRoot(), app.name, CHUI_APP_CONFIG_SAMPLE_FILENAME);
+
+
+export const getChuiAppConfigPath = app =>
+    path.join(getConfigRoot(), app.name, CHUI_APP_CONFIG_FILENAME);
+
+
+export const getChuiAppSamplePulumiConfigPath = app =>
+    path.join(getConfigRoot(), app.name, CHUI_APP_CONFIG_DIR, CHUI_APP_PULUMI_SAMPLE_CONFIG_FILENAME);
+
+
+export const getChuiAppPulumiConfigPath = app =>
+    path.join(getConfigRoot(), app.name, CHUI_APP_CONFIG_DIR, CHUI_APP_PULUMI_CONFIG_FILENAME);
+
+
 /**
  * Prepare the app, once it's cloned.
- *
  * @param config
  * @param app
- * @param root
  */
-export const prepAppPulumiConfig = async (config: ChuiGlobalConfig, app: ChuiAppInstaller, root: string) => {
-    let pulumiConfig = await readFile(path.join(
-        root,
-        app.directory,
-        CHUI_APP_CONFIG_DIR,
-        CHUI_APP_PULUMI_SAMPLE_CONFIG_FILENAME,
-    ), "utf8");
+export const prepAppPulumiConfig = async (config: ChuiBaseConfig, app: ChuiAppInstaller) => {
+    const root = getConfigRoot();
+    let pulumiConfig = await readFile(getChuiAppSamplePulumiConfigPath(app), "utf8");
 
     pulumiConfig = pulumiConfig.replace(/{{globalAppName}}/g, config.globalAppName);
-    pulumiConfig = pulumiConfig.replace(/{{application}}/g, app.directory);
+    pulumiConfig = pulumiConfig.replace(/{{application}}/g, app.name);
     pulumiConfig = pulumiConfig.replace(/{{pulumiOrgName}}/g, config.pulumiOrgName);
 
-    await writeFile(path.join(
-        root,
-        app.directory,
-        CHUI_APP_CONFIG_DIR,
-        'Pulumi.yaml'
-    ), pulumiConfig);
+    await writeFile(getChuiAppPulumiConfigPath(app), pulumiConfig);
 };
 
 
 /**
  * Prepare the app, once it's cloned.
- *
  * @param config
  * @param app
- * @param root
  */
-export const prepAppChuiConfig = async (config: ChuiGlobalConfig, app: ChuiAppInstaller, root: string) => {
-    let chuiConfig = await readFile(path.join(
-        root,
-        app.directory,
-        CHUI_APP_CONFIG_SAMPLE_FILENAME,
-    ), "utf8");
+export const prepAppChuiConfig = async (config: ChuiBaseConfig, app: ChuiAppInstaller) => {
+    const root = getConfigRoot();
+    let chuiConfig = await readFile(getChuiAppSampleConfigPath(app), "utf8");
 
     chuiConfig = chuiConfig.replace(/{{globalAppName}}/g, config.globalAppName);
-    chuiConfig = chuiConfig.replace(/{{application}}/g, app.directory);
+    chuiConfig = chuiConfig.replace(/{{application}}/g, app.name);
 
-    await writeFile(path.join(
-        root,
-        app.directory,
-        CHUI_APP_CONFIG_FILENAME,
-    ), chuiConfig);
+    await writeFile(getChuiAppConfigPath(app), chuiConfig);
 };
 
 
-export const installApp = async (
-    config: ChuiGlobalConfig,
-    app: ChuiAppInstaller,
-): Promise<ChuiGlobalConfig> => {
+/**
+ * Clone the app and switch the remotes so users can easily
+ * tie into their own setup.
+ * @param app
+ */
+export const cloneApp = async (app: ChuiAppInstaller) => {
     const root = getConfigRoot();
-    const repo = await Git.Clone.clone(app.source, path.join(root, app.directory));
+    const repo = await Git.Clone.clone(app.source, path.join(root, app.name));
     await Git.Remote.delete(repo, 'origin');
     await Git.Remote.createWithFetchspec(repo, 'chui', app.source, 'master');
-    await prepAppPulumiConfig(config, app, root);
-    await prepAppChuiConfig(config, app, root);
+};
+
+
+/**
+ * Loads a Chui app's config, given its name.
+ * @param name
+ */
+export const loadChuiAppConfig = (name: string): ChuiApp => {
+    const app: ChuiAppInstaller = {name: name, source: ''};
+    return yaml.safeLoad(fs.readFileSync(
+        getChuiAppConfigPath(app),
+        'utf8'
+    ));
+};
+
+
+/**
+ * Takes an app installer, assumes the app is already installed,
+ * loads its config, and adds that data to the main Chui project
+ * config file.
+ * @param app
+ */
+export const writeNewAppToConfig = async (app: ChuiAppInstaller) => {
+    const configFile = loadConfigFile();
+    const config = loadGlobalConfig();
+
+    const appConfig = await loadChuiAppConfig(app.name);
 
     const {apps = []} = config;
-    return {
-        ...config,
-        apps: [...apps, app],
+    const newConfig: ChuiConfigFile = {
+        ...configFile,
+        globals: {
+            ...configFile.globals,
+            apps: [...apps, appConfig],
+        }
     };
+
+    await writeChuiYamlConfig(newConfig);
+};
+
+
+/**
+ * Takes an app installer and installs the app. Then
+ * updates the installer if needed.
+ * @param app
+ */
+export const installApp = async (
+    app: ChuiAppInstaller,
+): Promise<void> => {
+    const config = loadGlobalConfig();
+
+    await cloneApp(app);
+    await prepAppPulumiConfig(config, app);
+    await prepAppChuiConfig(config, app);
+    await writeNewAppToConfig(app);
 };

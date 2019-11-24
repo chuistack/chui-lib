@@ -19,7 +19,7 @@ export const getTypeStack = (appType: ChuiAppTypes) => {
         throw Error(`No ${appType} defined.`);
     }
     return new StackReference(
-        `${chui.pulumiOrgName}/${chui.globalAppName}-${ingress.directory}/${getStack()}`
+        `${chui.pulumiOrgName}/${chui.globalAppName}-${ingress.name}/${getStack()}`
     );
 };
 
@@ -34,7 +34,7 @@ export const getTypeStack = (appType: ChuiAppTypes) => {
 export const getNamedStack = (name: string) => {
     const chui = loadCurrentConfig();
     const apps = chui.apps;
-    const app = apps.find(app => app.directory === name);
+    const app = apps.find(app => app.name === name);
     if (!app) {
         throw Error(`No app called "${name}" defined.`);
     }
@@ -59,6 +59,6 @@ export const getSourceStack = (source: string) => {
         throw Error(`No app from "${source}" defined.`);
     }
     return new StackReference(
-        `${chui.pulumiOrgName}/${chui.globalAppName}-${app.directory}/${getStack()}`
+        `${chui.pulumiOrgName}/${chui.globalAppName}-${app.name}/${getStack()}`
     );
 };
