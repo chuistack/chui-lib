@@ -15,6 +15,7 @@
     "dashify": "^2.0.0",
     "find-up": "^4.1.0",
     "js-yaml": "^3.13.1",
+    "nodegit": "^0.26.2",
     "tslib": "^1.10.0",
     "typescript": "^3.6.3"
   },

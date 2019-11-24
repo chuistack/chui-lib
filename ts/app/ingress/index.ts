@@ -1,5 +1,5 @@
-import {ChuiAppTypes} from "../types/config";
-import {getTypeStack} from "../stack";
+import {ChuiAppTypes} from "../../types/config";
+import {getTypeStack} from "../../stack";
 
 
 /**
