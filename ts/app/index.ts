@@ -11,7 +11,8 @@ import {ChuiApp, ChuiAppInstaller, ChuiAppSource, ChuiBaseConfig, ChuiConfigFile
 import {getConfigRoot, loadConfigFile, loadGlobalConfig, writeChuiYamlConfig} from "../config";
 import * as yaml from "js-yaml";
 import fetch from "node-fetch";
-import * as simplegit from "simple-git";
+import * as simplegit from "simple-git/promise";
+import * as chalk from "chalk";
 
 
 export const Ingress = ingress;
@@ -81,6 +82,7 @@ export const prepAppChuiConfig = async (config: ChuiBaseConfig, app: ChuiAppInst
 
     chuiConfig = chuiConfig.replace(/{{globalAppName}}/g, config.globalAppName);
     chuiConfig = chuiConfig.replace(/{{application}}/g, app.name);
+    chuiConfig = chuiConfig.replace(/{{pulumiOrgName}}/g, config.pulumiOrgName);
 
     await writeFile(getChuiAppConfigPath(app), chuiConfig);
 };
@@ -93,8 +95,12 @@ export const prepAppChuiConfig = async (config: ChuiBaseConfig, app: ChuiAppInst
  */
 export const cloneApp = async (app: ChuiAppInstaller) => {
     const root = getConfigRoot();
-    console.log("Cloning, ", app.source, " into ", path.join(root, app.name));
-    const repo = await git.clone(app.source, path.join(root, app.name));
+    const appPath = path.join(root, app.name);
+    console.log(`Cloning: ${chalk.blue(app.name)}`);
+    await git.clone(app.source, appPath);
+    await git.cwd(appPath);
+    await git.removeRemote('origin');
+    await git.addRemote('chui', app.source);
 };
 
 
@@ -121,7 +127,7 @@ export const writeNewAppToConfig = async (app: ChuiAppInstaller) => {
     const configFile = loadConfigFile();
     const config = loadGlobalConfig();
 
-    const appConfig = await loadChuiAppConfig(app.name);
+    const {pulumiOrgName, ...appConfig} = await loadChuiAppConfig(app.name);
 
     const {apps = []} = config;
     const newConfig: ChuiConfigFile = {
@@ -141,12 +147,12 @@ export const writeNewAppToConfig = async (app: ChuiAppInstaller) => {
  * updates the installer if needed.
  * @param app
  */
-export const installApp = async (
+export const addApp = async (
     app: ChuiAppInstaller,
 ): Promise<void> => {
     const config = loadGlobalConfig();
 
-    console.log("About to install: ", app);
+    console.log(`About to add ${app.type}: ${chalk.blue(app.name)}`);
 
     await cloneApp(app);
     await prepAppPulumiConfig(config, app);

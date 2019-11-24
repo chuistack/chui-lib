@@ -5,7 +5,7 @@ import {promisify} from "util";
 import * as path from "path";
 import * as yaml from "js-yaml";
 import {CHUI_CONFIG_FILENAME} from "../constants";
-import {installApp, loadOfficialAppList} from "../app";
+import {addApp, loadOfficialAppList} from "../app";
 
 
 const mkdir = promisify(fs.mkdir);
@@ -83,7 +83,7 @@ export const installInfrastructure = async (config: ChuiPromptConfig) => {
         app.variant === config.infrastructure
     );
     if (app) {
-        await installApp({...app, name: ChuiAppTypes.Infrastructure});
+        await addApp({...app, name: ChuiAppTypes.Infrastructure});
     }
 };
 
@@ -95,7 +95,7 @@ export const installIngressController = async () => {
     const appList = await loadOfficialAppList();
     const app = appList.find(app => app.type === ChuiAppTypes.IngressController);
     if (app) {
-        await installApp({...app, name: ChuiAppTypes.IngressController});
+        await addApp({...app, name: ChuiAppTypes.IngressController});
     }
 };
 
@@ -107,7 +107,7 @@ export const installCertManager = async () => {
     const appList = await loadOfficialAppList();
     const app = appList.find(app => app.type === ChuiAppTypes.CertManager);
     if (app) {
-        await installApp({...app, name: ChuiAppTypes.CertManager});
+        await addApp({...app, name: ChuiAppTypes.CertManager});
     }
 };
 
@@ -125,7 +125,7 @@ export const installAuth = async (config: ChuiPromptConfig) => {
         app.variant === config.authProvider
     );
     if (app) {
-        await installApp({...app, name: ChuiAppTypes.Auth});
+        await addApp({...app, name: ChuiAppTypes.Auth});
     }
 };
 
@@ -143,7 +143,7 @@ export const installStorage = async (config: ChuiPromptConfig) => {
         app.variant === config.storageProvider
     );
     if (app) {
-        await installApp({...app, name: ChuiAppTypes.Storage});
+        await addApp({...app, name: ChuiAppTypes.Storage});
     }
 };
 
@@ -161,7 +161,7 @@ export const installServerless = async (config: ChuiPromptConfig) => {
         app.variant === config.serverlessProvider
     );
     if (app) {
-        await installApp({...app, name: ChuiAppTypes.Serverless});
+        await addApp({...app, name: ChuiAppTypes.Serverless});
     }
 };
 
@@ -175,7 +175,7 @@ export const createNewProject = async (config: ChuiPromptConfig) => {
     await createConfigFile(config);
 
     setInitializing(true);
-    setConfigRoot(config.globalAppName);
+    setConfigRoot(path.join(process.cwd(), config.globalAppName));
 
     await installInfrastructure(config);
     await installIngressController();
