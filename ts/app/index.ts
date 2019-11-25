@@ -1,7 +1,7 @@
 import * as ingress from "./ingress";
 import * as path from "path";
 import {CHUI_OFFICIAL_APP_LIST_URL} from "../constants";
-import {ChuiAppInstaller, ChuiAppSource, ChuiConfigFile} from "../types/config";
+import {ChuiAppInstaller, ChuiAppSource, ChuiAppTypes, ChuiBaseConfig, ChuiConfigFile} from "../types/config";
 import {getConfigRoot, loadConfigFile, loadGlobalConfig, writeChuiYamlConfig} from "../config";
 import * as yaml from "js-yaml";
 import fetch from "node-fetch";
@@ -61,18 +61,41 @@ export const writeNewAppToConfig = async (app: ChuiAppInstaller) => {
     const configFile = loadConfigFile();
     const config = loadGlobalConfig();
 
-    const {pulumiOrgName, ...appConfig} = await loadAppChuiConfig(app.name);
+    const {
+        pulumiOrgName,
+        globalAppName,
+        ...appConfig
+    } = await loadAppChuiConfig(app.name);
 
     const {apps = []} = config;
     const newConfig: ChuiConfigFile = {
         ...configFile,
         globals: {
             ...configFile.globals,
-            apps: [...apps, appConfig],
+            apps: app.type === ChuiAppTypes.Infrastructure ?
+                [appConfig, ...apps] :
+                [...apps, appConfig],
         }
     };
 
     await writeChuiYamlConfig(newConfig);
+};
+
+
+/**
+ * Validate the app to be installed.
+ * @param app
+ * @param config
+ */
+export const _validateApp = (app: ChuiAppInstaller, config: ChuiBaseConfig) => {
+    const isInfra = app.type === ChuiAppTypes.Infrastructure;
+    const hasInfra = !!config.apps.find(
+        app => app.type === ChuiAppTypes.Infrastructure
+    );
+
+    if (isInfra && hasInfra) {
+        throw Error('Infrastructure already configured.');
+    }
 };
 
 
@@ -85,6 +108,8 @@ export const addApp = async (
     app: ChuiAppInstaller,
 ): Promise<void> => {
     const config = loadGlobalConfig();
+
+    _validateApp(app, config);
 
     console.log(`About to add ${app.type}: ${chalk.blue(app.name)}`);
 
