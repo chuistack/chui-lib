@@ -96,6 +96,5 @@ export const addApp = async (
     const pulumiConfig = getChuiAppPulumiConfigPath(app);
     const appConfigDir = path.dirname(pulumiConfig);
 
-    console.log("DIRECTORY: ", appConfigDir);
     await execCmd('npm', ['install'], appConfigDir);
 };
