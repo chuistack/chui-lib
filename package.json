@@ -1,6 +1,6 @@
 {
   "name": "@chuistack/chui-lib",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "The tools used by the Chui CLI and Chui Apps.",
   "main": "./dist/index.js",
   "scripts": {
