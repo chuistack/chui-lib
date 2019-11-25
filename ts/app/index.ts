@@ -121,5 +121,6 @@ export const addApp = async (
     const pulumiConfig = getChuiAppPulumiConfigPath(app);
     const appConfigDir = path.dirname(pulumiConfig);
 
+    console.log(chalk.yellow(`Installing app dependencies...`));
     await execCmd('npm', ['install'], appConfigDir);
 };
