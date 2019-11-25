@@ -1,4 +1,4 @@
-import {spawnSync} from "child_process";
+import {execSync, spawnSync} from "child_process";
 
 
 /**
@@ -9,13 +9,10 @@ import {spawnSync} from "child_process";
  * @param cwd
  */
 export const execCmd = (cmd: string, args?: string[], cwd?: string) => {
-    const _cmd = spawnSync(cmd, args || [], {
+    execSync([
+        cmd,
+        ...args
+    ].join(' '), {
         cwd: cwd,
     });
-
-    const err = _cmd.stderr.toString();
-    if (err)
-        throw Error(err);
-
-    return _cmd.stdout.toString();
 };
