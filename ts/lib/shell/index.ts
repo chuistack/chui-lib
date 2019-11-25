@@ -9,10 +9,9 @@ import {spawnSync} from "child_process";
  * @param cwd
  */
 export const execCmd = (cmd: string, args?: string[], cwd?: string) => {
-    if (cwd) {
-        cmd = `cd ${cwd} && ${cmd}`;
-    }
-    const _cmd = spawnSync(cmd, args || []);
+    const _cmd = spawnSync(cmd, args || [], {
+        cwd: cwd,
+    });
 
     const err = _cmd.stderr.toString();
     if (err)

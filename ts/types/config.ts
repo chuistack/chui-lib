@@ -83,6 +83,7 @@ export interface ChuiApp {
     type: ChuiAppTypes;
     variant?: ChuiAppVariants;
     name: string;
+    globalAppName: string;
     pulumiOrgName: string;
     dependencies?: string[];
 }

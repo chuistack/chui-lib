@@ -1,11 +1,10 @@
-import {ChuiAppInstaller, ChuiBaseConfig, ChuiCompleteConfig, ChuiConfigFile, ChuiEnvConfig,} from "../types/config";
+import {ChuiAppInstaller, ChuiBaseConfig, ChuiCompleteConfig, ChuiConfigFile,} from "../types/config";
 import * as findup from "find-up";
 import * as yaml from "js-yaml";
 import * as fs from "fs";
 import * as path from "path";
 import * as dashify from "dashify";
-import {CHUI_APP_CONFIG_DIR, CHUI_CONFIG_FILENAME} from "../constants";
-import {getEnv} from "../environment";
+import {CHUI_APP_CONFIG_DIR, CHUI_CONFIG_FILENAME, CHUI_ENVIRONMENT_VARIABLE} from "../constants";
 import {
     AppListValidator,
     AppValidator,
@@ -20,13 +19,19 @@ import {promisify} from "util";
 import * as chalk from "chalk";
 
 
-const mkdir = promisify(fs.mkdir);
 const writeFile = promisify(fs.writeFile);
 
 
 let _configRoot: string | undefined = undefined;
 let _initializing: boolean = false;
 let _config: ChuiCompleteConfig;
+
+
+/**
+ * Get the current environment name.
+ */
+const _getEnv = () =>
+    process.env[CHUI_ENVIRONMENT_VARIABLE];
 
 
 /**
@@ -143,7 +148,7 @@ export const validateCompleteConfig = (config: ChuiCompleteConfig): void =>
  * @private
  */
 export const _getMergedConfig = (configJson: ChuiConfigFile): ChuiCompleteConfig => {
-    const env = getEnv();
+    const env = _getEnv();
     const configList = configJson.environments.filter((_env) => _env.environment === env);
     if (configList.length === 0) {
         throw Error(`No matching config for: ${env}`);
@@ -266,18 +271,5 @@ export const getCurrentAppName = (): string => {
  */
 export const getCurrentApps = (): ChuiAppInstaller[] =>
     loadCurrentConfig().apps;
-
-
-export const addEnvironmentToConfig = async (name: string, domain?: string) => {
-    const config = loadConfigFile();
-    const environment: ChuiEnvConfig = {environment: name};
-
-    if (domain)
-        environment.environmentDomain = domain;
-
-    config.environments.push(environment);
-
-    await writeChuiYamlConfig(config);
-};
 
 
