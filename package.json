@@ -30,7 +30,7 @@
     "simple-git": "^1.126.0",
     "tslib": "^1.10.0",
     "typescript": "^3.6.3",
-    "validator": "^12.1.0"
+    "validator": "^13.7.0"
   },
   "devDependencies": {
     "@types/dashify": "^1.0.0",
